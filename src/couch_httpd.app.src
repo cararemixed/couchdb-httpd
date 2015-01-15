@@ -10,20 +10,11 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
-{application, couch, [
-    {description, "Apache CouchDB"},
+{application, couch_httpd, [
+    {description, "Apache CouchDB HTTP API"},
     {vsn, git},
     {registered, [
-        couch_db_update,
-        couch_db_update_notifier_sup,
-        couch_external_manager,
-        couch_httpd,
-        couch_primary_services,
-        couch_proc_manager,
-        couch_secondary_services,
-        couch_server,
-        couch_sup,
-        couch_task_status
+        couch_httpd
     ]},
     {mod, {couch_app, []}},
     {applications, [
