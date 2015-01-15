@@ -23,7 +23,7 @@
 % config_listener api
 -export([handle_config_change/5]).
 
--include_lib("couch/include/couch_db.hrl").
+-include_lib("couch_store/include/couch_db.hrl").
 
 -define(SEPARATOR, $\/).
 -define(MATCH_ALL, {bind, '*'}).

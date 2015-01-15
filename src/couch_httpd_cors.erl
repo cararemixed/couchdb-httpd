@@ -20,7 +20,7 @@
 
 -module(couch_httpd_cors).
 
--include_lib("couch/include/couch_db.hrl").
+-include_lib("couch_store/include/couch_db.hrl").
 
 -export([is_preflight_request/1, cors_headers/2]).
 
