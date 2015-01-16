@@ -162,7 +162,7 @@ proxy_auth_user(Req) ->
                         nil ->
                             Req#httpd{user_ctx=#user_ctx{name=?l2b(UserName), roles=Roles}};
                         Secret ->
-                            ExpectedToken = couch_util:to_hex(crypto:sha_mac(Secret, UserName)),
+                            ExpectedToken = couch_util:to_hex(crypto:hmac(sha, Secret, UserName)),
                             case header_value(Req, XHeaderToken) of
                                 Token when Token == ExpectedToken ->
                                     Req#httpd{user_ctx=#user_ctx{name=?l2b(UserName),
@@ -206,7 +206,7 @@ cookie_authentication_handler(#httpd{mochi_req=MochiReq}=Req, AuthModule) ->
             {ok, UserProps, _AuthCtx} ->
                 UserSalt = couch_util:get_value(<<"salt">>, UserProps, <<"">>),
                 FullSecret = <<Secret/binary, UserSalt/binary>>,
-                ExpectedHash = crypto:sha_mac(FullSecret, User ++ ":" ++ TimeStr),
+                ExpectedHash = crypto:hmac(sha, FullSecret, User ++ ":" ++ TimeStr),
                 Hash = ?l2b(HashStr),
                 Timeout = list_to_integer(
                     config:get("couch_httpd_auth", "timeout", "600")),
@@ -254,7 +254,7 @@ cookie_auth_header(_Req, _Headers) -> [].
 
 cookie_auth_cookie(Req, User, Secret, TimeStamp) ->
     SessionData = User ++ ":" ++ erlang:integer_to_list(TimeStamp, 16),
-    Hash = crypto:sha_mac(Secret, SessionData),
+    Hash = crypto:hmac(sha, Secret, SessionData),
     mochiweb_cookies:cookie("AuthSession",
         couch_util:encodeBase64Url(SessionData ++ ":" ++ ?b2l(Hash)),
         [{path, "/"}] ++ cookie_scheme(Req) ++ max_age()).
@@ -481,15 +481,9 @@ verify_token(Alg, Key, Len, Token) ->
     end.
 
 generate_token(Alg, Key, Len, Timestamp) ->
-    integer_to_binary(couch_totp:generate(Alg, Key, Timestamp, 30, Len), Len).
+    padded_integer_to_binary(couch_totp:generate(Alg, Key, Timestamp, 30, Len), Len).
 
-integer_to_binary(Int, Len) when is_integer(Int), is_integer(Len) ->
-    Unpadded = case erlang:function_exported(erlang, integer_to_binary, 1) of
-        true ->
-            erlang:integer_to_binary(Int);
-        false ->
-           ?l2b(integer_to_list(Int))
-    end,
-    Padding = binary:copy(<<"0">>, Len),
-    Padded = <<Padding/binary, Unpadded/binary>>,
-    binary:part(Padded, byte_size(Padded), -Len).
+padded_integer_to_binary(Int, Len) ->
+    Number = erlang:integer_to_binary(Int),
+    Padding = binary:copy(<<"0">>, max(0, Len - size(Number))),
+    <<Padding/binary, Number/binary>>.
